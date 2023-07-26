@@ -12,21 +12,19 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const port = 3000;
 
-//given corresponding values to connect to postresql database created.
-const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'postgres',
-    password: 'NSree98',
-    port: 5432,
+const knex = require('knex');
+const pool= knex({
+  client: 'pg',
+  connection: {
+    connectionString: 'postgres://navya:tKIsnxDnITw9gSCC7QP3O5UHffcOH3sA@dpg-cj0kee3438irjjdv9ja0-a/week3',
+    ssl: {
+      rejectUnauthorized: false
+    }
+  }
 });
 
-CREATE TABLE Users (
-  id SERIAL PRIMARY KEY,
-  username VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(100) NOT NULL,
-  role VARCHAR(50) NOT NULL
-);
+module.exports = db;
+
 const createTableQuery = '
   CREATE TABLE Users (
   id SERIAL PRIMARY KEY,
