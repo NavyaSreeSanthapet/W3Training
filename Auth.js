@@ -107,7 +107,7 @@ app.post('/login', async (req, res) => {
         //query to select users with given id.
         const query = 'SELECT * FROM users WHERE username = $1';
         //below query selects the users from database with request id.
-        const { rows } = await pool.query(query, [username]);
+        const { rows } = await itemsPool.query(query, [username]);
         //then if result of database query is null then returns invalid credentials message in response.
         if (rows.length === 0) {
             return res.status(401).json({ message: 'Invalid credentials.' });
