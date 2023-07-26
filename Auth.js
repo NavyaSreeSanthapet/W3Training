@@ -6,48 +6,29 @@ const { Pool } = require('pg');
 const bodyParser = require('body-parser');
 //imported jsonwebtoken module for user authorization to resources through tokens.
 const jwt = require('jsonwebtoken');
+const knex = require('knex');
 
 
 //created instance of express and assigned to port 3000.
 const app = express();
 const port = 3000;
 
-const knex = require('knex');
-const pool= knex({
-  client: 'pg',
-  connection: {
-    connectionString: 'postgres://navya:tKIsnxDnITw9gSCC7QP3O5UHffcOH3sA@dpg-cj0kee3438irjjdv9ja0-a/week3',
+
+const itemsPool = new Pool({
+    connectionString: process.env.DBConfigLink,
     ssl: {
-      rejectUnauthorized: false
+        rejectUnauthorized: false
     }
-  }
 });
 
-module.exports = db;
-
-const createTableQuery = '
-  CREATE TABLE Users (
-  id SERIAL PRIMARY KEY,
-  username VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(100) NOT NULL,
-  role VARCHAR(50) NOT NULL
-);
-';
-pool.query(createTableQuery, (err, res) => {
-  if (err) {
-    console.error('Error creating table:', err);
-  } else {
-    console.log('Table created successfully');
-  }
-});
 
 // Event listener for successful connection
-pool.on('connect', () => {
+itemsPool.on('connect', () => {
     console.log('Connected to PostgreSQL successfully!');
 });
 
 // PostgreSQL error event listener
-pool.on('error', (err) => {
+itemsPool.on('error', (err) => {
     console.error('Error connecting to PostgreSQL:', err.message);
 });
 
@@ -79,7 +60,7 @@ const authenticateUser = (req, res, next) => {
 app.get('/api/data', async (req, res) => {
     try {
         // Query to fetch data from the database Users and result object assigned to queryResult variable.
-        const queryResult = await pool.query('SELECT * FROM Users');
+        const queryResult = await itemsPool.query('SELECT * FROM Users');
         //output stored in rows property and sent in response.
         res.json(queryResult.rows);
     } catch (err) {
@@ -101,7 +82,7 @@ app.post('/register', async (req, res) => {
         }
         //query to insert the given user values into database using below command.
         const query = 'INSERT INTO Users (username, password, role) VALUES ($1, $2, $3)';
-        await pool.query(query, [username, password, role]);
+        await itemsPool.query(query, [username, password, role]);
         //once the database query is successfull sent a success message in response.
         res.status(201).json({message: 'User registered successfully.'});
     }//if any error occurs will send the error message in response.
@@ -118,7 +99,7 @@ app.post('/login', async (req, res) => {
         //query to select users with given id.
         const query = 'SELECT * FROM users WHERE username = $1';
         //below query selects the users from database with request id.
-        const { rows } = await pool.query(query, [username]);
+        const { rows } = await itemsPool.query(query, [username]);
         //then if result of database query is null then returns invalid credentials message in response.
         if (rows.length === 0) {
             return res.status(401).json({ message: 'Invalid credentials.' });
