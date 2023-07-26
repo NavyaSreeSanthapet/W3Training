@@ -21,6 +21,28 @@ const pool = new Pool({
     port: 5432,
 });
 
+CREATE TABLE Users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(100) UNIQUE NOT NULL,
+  password VARCHAR(100) NOT NULL,
+  role VARCHAR(50) NOT NULL
+);
+const createTableQuery = '
+  CREATE TABLE Users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(100) UNIQUE NOT NULL,
+  password VARCHAR(100) NOT NULL,
+  role VARCHAR(50) NOT NULL
+);
+';
+pool.query(createTableQuery, (err, res) => {
+  if (err) {
+    console.error('Error creating table:', err);
+  } else {
+    console.log('Table created successfully');
+  }
+});
+
 // Event listener for successful connection
 pool.on('connect', () => {
     console.log('Connected to PostgreSQL successfully!');
