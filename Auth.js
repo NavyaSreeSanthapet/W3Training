@@ -53,7 +53,7 @@ app.use(
 app.get('/api/data', async (req, res) => {
     try {
         // Query to fetch data from the database Users and result object assigned to queryResult variable.
-        const queryResult = await pool.query('SELECT * FROM Users');
+        const queryResult = await itemsPool.query('SELECT * FROM Users');
         //output stored in rows property and sent in response.
         res.json(queryResult.rows);
     } catch (err) {
