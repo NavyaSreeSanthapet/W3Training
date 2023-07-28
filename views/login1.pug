@@ -5,7 +5,9 @@ html
         if message
             h4 #{message}
         form(action="/login" method="POST")
-            input(name="username" type="text" required placeholder="User ID")
-            input(name="password" type="password" required placeholder="Password")
+            p username:
+                input(name="username" type="text" required )
+            p password:
+                input(name="password" type="password" required)
             button(type="submit") Login
             p new user ! register #[a(href="/register") here]
