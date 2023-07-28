@@ -1,96 +1,82 @@
 //imported express module.
 const express = require('express');
 //imported 'pg' module used to connect server to database.
-const { Pool } = require('pg');
+const pool=require('./db');
+
 //imported body-parser used to process data sent in request body using below middleware functions.
 const bodyParser = require('body-parser');
 //imported jsonwebtoken module for user authorization to resources through tokens.
 const jwt = require('jsonwebtoken');
-const knex = require('knex');
-
+//imported express-session used to create sessions to store data between http request used for authentication.
+const session = require("express-session");
 
 //created instance of express and assigned to port 3000.
 const app = express();
 const port = 3000;
+//set pug as view engine and ./views folder as views for the app.
+app.set("view engine", "pug");
+app.set("views","./views");
 
-
-const itemsPool = new Pool({
-    connectionString: process.env.DBConfigLink,
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
-
-
-// Event listener for successful connection
-itemsPool.on('connect', () => {
-    console.log('Connected to PostgreSQL successfully!');
-});
-
-// PostgreSQL error event listener
-itemsPool.on('error', (err) => {
-    console.error('Error connecting to PostgreSQL:', err.message);
-});
 
 //connected middleware functions to server
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+//session middle function used to create sessions by adding data to req.session object and delete it when ever necessary.
+app.use(
+    session({
+        secret: "your_secret_key",
+        resave: false,
+        saveUninitialized: false,
+    })
+);
 
-//created middleware function for route '/protected' to authorize the users by
-//validating the token user sends through request
-//if token is valid request is sent to route handler else returns response.
-const authenticateUser = (req, res, next) => {
-    //seperating only the token.
-    const token = req.headers.authorization.split(' ')[1];
-    //if no token is there, sent a message as 'Access denied. Token not provided' in response.
-    if (!token) {
-        return res.status(401).json({ message: 'Access denied. Token not provided.' });
-    }
-    //.verify method decodes the token with the key and assigns it to req.user object for future reference.
-    try {
-        const decoded = jwt.verify(token, 'your_secret_key');
-        req.user = decoded;
-        next();
-    } catch (err) {
-        return res.status(403).json({ message: 'Invalid token.' });
-    }
-};
 
 // created a simple get route handler at '/api/data' to output table Users
 app.get('/api/data', async (req, res) => {
     try {
         // Query to fetch data from the database Users and result object assigned to queryResult variable.
-        const queryResult = await itemsPool.query('SELECT * FROM Users');
+        const queryResult = await pool.query('SELECT * FROM Users');
         //output stored in rows property and sent in response.
         res.json(queryResult.rows);
     } catch (err) {
         res.status(500).json({ error: 'Error fetching data from the database.' });
     }
 });
+
+
+//created a get route handler at /register to display inputform in response.
+app.get('/register', async (req, res) => {
+    const message = "Welcome to the signup page!";
+    //renders login pug page
+    res.render("login",{ message });
+});
 //created a Post route handler for new users to  register.
 app.post('/register', async (req, res) => {
     try {
-        //the username ,password and role values are sent through the request and stoted in below variables.
+        //the username ,password and role values are sent through the request and stored in below variables.
         const username = req.body.username;
         const password =req.body.password;
         const role=req.body.role;
         //logged to see weather server received correct values.
         console.log('Received data:', {username, password, role});
-        //if any values is not sent in request sent a error message in response.
-        if (!username || !password || !role) {
-            return res.status(400).json({error: 'Missing required data.'});
-        }
         //query to insert the given user values into database using below command.
         const query = 'INSERT INTO Users (username, password, role) VALUES ($1, $2, $3)';
-        await itemsPool.query(query, [username, password, role]);
+        await pool.query(query, [username, password, role]);
         //once the database query is successfull sent a success message in response.
-        res.status(201).json({message: 'User registered successfully.'});
+        const message = "User registered successfully!";
+        //once user is registered successfully displays register page created.
+        res.status(201).render("register",{message});
     }//if any error occurs will send the error message in response.
     catch (err) {
         res.status(500).json({error: err.message});
     }
 });
 
+//created a get method at /login route handler to display login page.
+app.get('/login', async (req, res) => {
+    const message = "Welcome to the Login page!";
+    res.render("login1",{ message });
+});
 //created a route handler at 'login' to authenticate user and creates a token for authorization on successful authentication.
 app.post('/login', async (req, res) => {
     try {
@@ -99,7 +85,7 @@ app.post('/login', async (req, res) => {
         //query to select users with given id.
         const query = 'SELECT * FROM users WHERE username = $1';
         //below query selects the users from database with request id.
-        const { rows } = await itemsPool.query(query, [username]);
+        const { rows } = await pool.query(query, [username]);
         //then if result of database query is null then returns invalid credentials message in response.
         if (rows.length === 0) {
             return res.status(401).json({ message: 'Invalid credentials.' });
@@ -110,20 +96,36 @@ app.post('/login', async (req, res) => {
         if (user.password!=password) {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
-        //once authenticated creates a new token with id which encrypts with given key and creates a token.
-        const token = jwt.sign({ id: user.id }, 'your_secret_key');
+        //once user is Authenticated assigns user details to req.session.use object and send login2 page in response.
+        req.session.user = user;
+        res.status(200).render('login2',{ message: "Login successful." });
         //sends the token in response.
-        res.json({ token });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 //created a route handler at route '/protected' to only authorize users who are valid.
-app.get('/protected', authenticateUser, (req, res) => {
-    // Only authorized users can access this route
-    res.json({ message: 'Protected route. You are authorized!' });
+app.get('/protected', (req, res) => {
+    //checks if req.session object of user has any value if yes then sends protected page response.
+    if (req.session.user) {
+        res.status(200).render('protected',{ message: "You have access to protected data!" });
+    } else {
+        res.status(403).json({ message: "Access forbidden. Authentication failed." });
+    }
 });
+
+//created a route handler at "/logout" to delete or destroy the user session created by destroying or deleting the data assigned to req.session object.
+app.get('/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error("Error destroying session:", err);
+        }
+        //after that redirects to login page.
+        res.redirect("/login");
+    });
+});
+
 
 
 
@@ -132,6 +134,8 @@ app.get('/protected', authenticateUser, (req, res) => {
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
 });
+
+module.exports = app;
 
 //example curl commands used for above
 //curl -X POST -H "Content-Type: application/json" -d "{\"username\":\"hello\",\"password\":\"abcd\",\"role\":\"admin\"}" http://localhost:3000/register

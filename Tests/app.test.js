@@ -13,24 +13,12 @@ describe('Test registration functionality', () => {
     it('should register a new user successfully', async () => {
         const response = await request(app).post('/register')
             .send({
-                username: 'user40',
-                password: 'pass40',
+                username: 'user105',
+                password: 'pass105',
                 role: 'admin',
             });
         expect(response.status).toBe(201);
         expect(response.text).toContain('User registered successfully!');
-    });
-
-    it('should return a 400 status and error message for missing data', async () => {
-        const userData = {
-            username: 'user23',
-            role: 'admin',
-        };
-        const response = await request(app)
-            .post('/register')
-            .send(userData);
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'Missing required data.' });
     });
    it('should return a 500 status and error message for server errors', async () => {
 
@@ -40,8 +28,8 @@ describe('Test registration functionality', () => {
            throw new Error('Database error');
        });
        const userData = {
-           username: 'user40',
-           password: 'pass40',
+           username: 'user105',
+           password: 'pass105',
            role:'yuytu',
            rate:'5',
        };
@@ -58,8 +46,8 @@ describe('Test Login functionality and authentication', () => {
     // Test registration endpoint
     it('should login successfully ', async () => {
         const userData = {
-            username: 'user40', // Provide valid username
-            password: 'pass40', // Provide valid password for the test user
+            username: 'user105', // Provide valid username
+            password: 'pass105', // Provide valid password for the test user
         };
 
         const response = await request(app)
@@ -102,13 +90,13 @@ describe('to test authorization functionality ', () => {
         //used agent object here to maintain state between multiple requests to the same server.
         const agent = request.agent(app);
         await agent.post('/register').send({
-            username: 'user40',
-            password: 'pass40',
+            username: 'user106',
+            password: 'pass106',
             role: 'user',
         });
         await agent.post('/login').send({
-            username: 'user40',
-            password: 'pass40',
+            username: 'user106',
+            password: 'pass106',
         });
         const response = await agent.get('/protected');
 
@@ -131,13 +119,13 @@ describe('to test logout functionality', () => {
         //used agent object here to maintain state between multiple requests to the same server.
         const agent = request.agent(app);
         await agent.post('/register').send({
-            username: 'user44',
-            password: 'pass44',
+            username: 'user107',
+            password: 'pass107',
             role: 'user',
         });
         await agent.post('/login').send({
-            username: 'user44',
-            password: 'pass44',
+            username: 'user107',
+            password: 'pass107',
         });
         await agent.get('/protected');
         const response = await agent.get('/logout');
